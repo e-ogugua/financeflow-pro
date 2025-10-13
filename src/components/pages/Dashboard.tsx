@@ -1,8 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Activity, DollarSign, Target, Shield, Lightbulb, CheckCircle, AlertTriangle, BarChart3, PieChart } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, DollarSign, Target, Lightbulb, CheckCircle, AlertTriangle, BarChart3, PieChart } from 'lucide-react';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Line, BarChart, Bar } from 'recharts';
-import { StatCard } from '../ui/StatCard';
 
 interface DashboardProps {
   portfolioData: Array<{
