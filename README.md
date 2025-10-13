@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # ai-finance-advisor
+=======
+# FinanceFlow Pro
+>>>>>>> 0540625 (docs: clean up README with professional FinanceFlow Pro documentation)
 
 ai-finance-advisor - Part of the EmmanuelOS ecosystem
 
