@@ -69,7 +69,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold font-display mb-2">
-              Welcome back, <span className="gradient-text">Emmanuel</span>
+              Welcome back, <span className="gradient-text">Guest</span>
             </h1>
             <p className="text-neutral-300 text-sm sm:text-base">
               Here's your financial overview for today
