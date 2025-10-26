@@ -21,7 +21,7 @@ export const Footer: React.FC = () => {
               <span className="font-bold text-white text-lg">FinanceFlow Pro</span>
             </div>
             <p className="text-neutral-300 text-sm leading-relaxed">
-              Professional financial planning platform designed for modern wealth management and investment strategy optimization.
+              Professional financial planning platform for scalable portfolio intelligence and wealth management optimization.
             </p>
           </div>
 
@@ -62,10 +62,10 @@ export const Footer: React.FC = () => {
         <div className="border-t border-white/10 mt-8 pt-6 sm:pt-8">
           <div className="flex flex-col sm:flex-row justify-between items-center text-center sm:text-left">
             <p className="text-neutral-300 text-sm mb-4 sm:mb-0">
-              &copy; 2025 FinanceFlow Pro by Emmanuel Chukwuka Ogugua.
+              &copy; 2025 FinanceFlow Pro by EmmanuelOS / CEO – Chukwuka Emmanuel Ogugua.
               <br className="sm:hidden" />
               <span className="hidden sm:inline"> • </span>
-              Professional Financial Technology Solutions for Modern Wealth Management.
+              Scalable Financial Technology Solutions for Portfolio Intelligence.
             </p>
             <div className="flex items-center space-x-6 text-sm text-neutral-400">
               <span className="hover:text-white transition-colors cursor-pointer">Privacy Policy</span>

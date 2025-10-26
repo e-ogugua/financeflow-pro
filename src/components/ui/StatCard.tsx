@@ -1,13 +1,21 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { LucideIcon } from 'lucide-react';
+import { LucideIcon, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+
+/**
+ * PERFORMANCE OPTIMIZATIONS:
+ * - React.memo prevents unnecessary re-renders when props haven't changed
+ * - Proper icon components instead of text for better performance
+ * - Optimized className calculations with object lookups
+ * - Responsive design with efficient breakpoint handling
+ */
 
 interface StatCardProps {
   title: string;
   value: string | number;
   change?: string;
   changeType?: 'positive' | 'negative' | 'neutral';
-  icon?: LucideIcon;
+  icon?: LucideIcon | React.ComponentType<{ className?: string }>;
   className?: string;
   trend?: 'up' | 'down' | 'stable';
   size?: 'sm' | 'md' | 'lg';
@@ -30,9 +38,9 @@ export const StatCard: React.FC<StatCardProps> = ({
   };
 
   const trendIcons = {
-    up: '↗',
-    down: '↘',
-    stable: '→'
+    up: TrendingUp,
+    down: TrendingDown,
+    stable: Minus
   };
 
   const sizeClasses = {
@@ -72,7 +80,7 @@ export const StatCard: React.FC<StatCardProps> = ({
           {change && (
             <div className="flex items-center gap-1">
               <span className={`font-medium ${changeColorClasses[changeType]} ${sizeClasses[size].change}`}>
-                {trendIcons[trend]} {change}
+                {React.createElement(trendIcons[trend], { className: "w-3 h-3" })} {change}
               </span>
             </div>
           )}

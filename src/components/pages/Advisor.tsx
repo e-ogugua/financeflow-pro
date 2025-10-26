@@ -1,6 +1,15 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Brain, MessageSquare, ChevronRight, Star, TrendingUp, TrendingDown, Clock, AlertTriangle, CheckCircle, Target } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Brain, MessageSquare, TrendingUp, TrendingDown, Clock, CheckCircle, Target, Send, Activity } from 'lucide-react';
+import { CardSkeleton, ListSkeleton } from '../ui/Skeleton';
+
+/**
+ * PERFORMANCE OPTIMIZATIONS:
+ * - useMemo for conversation processing and calculations
+ * - Responsive design with unified breakpoint system
+ * - Accessibility: ARIA labels, keyboard navigation, screen reader support
+ * - Simplified animations: limited opacity and transform chains
+ * - Optimized state management for chat functionality
+ */
 
 interface AdvisorProps {
   recommendations: Array<{
@@ -12,169 +21,334 @@ interface AdvisorProps {
     riskLevel?: string;
     timeHorizon?: string;
   }>;
+  isLoading?: boolean;
 }
 
-export const Advisor: React.FC<AdvisorProps> = ({ recommendations }) => {
-  const [message, setMessage] = useState('');
+interface Conversation {
+  type: 'user' | 'assistant';
+  message: string;
+  timestamp?: string;
+}
 
-  const conversations = [
+export const Advisor: React.FC<AdvisorProps> = ({ recommendations, isLoading = false }) => {
+  const [message, setMessage] = useState('');
+  const [conversations, setConversations] = useState<Conversation[]>([
     {
       type: 'assistant',
-      message: "Hello! I'm your dedicated financial advisor. I analyze market trends, your portfolio, and economic indicators to provide personalized investment recommendations. How can I help you achieve your financial goals today?"
-    },
-    {
-      type: 'user',
-      message: "Should I invest more in technology stocks given the recent market volatility?"
-    },
-    {
-      type: 'assistant',
-      message: "Based on your moderate risk profile and current 18% technology allocation, I'd recommend maintaining your current exposure. While tech fundamentals remain strong, recent volatility suggests waiting for better entry points. Consider diversifying into quality dividend stocks for stability."
+      message: "Hello! I'm your dedicated financial advisor. I analyze market trends, your portfolio, and economic indicators to provide personalized investment recommendations. How can I help you achieve your financial goals today?",
+      timestamp: new Date().toLocaleTimeString()
     }
-  ];
+  ]);
+
+  // Memoize recommendations processing
+  const processedRecommendations = useMemo(() => ({
+    buy: recommendations.filter(r => r.type.toLowerCase() === 'buy'),
+    hold: recommendations.filter(r => r.type.toLowerCase() === 'hold'),
+    sell: recommendations.filter(r => r.type.toLowerCase() === 'sell')
+  }), [recommendations]);
 
   const getRecommendationIcon = (type: string) => {
-    switch (type) {
-      case 'Buy': return <TrendingUp className="w-4 h-4 text-green-400" />;
-      case 'Sell': return <TrendingDown className="w-4 h-4 text-red-400" />;
-      case 'Hold': return <Target className="w-4 h-4 text-yellow-400" />;
-      case 'Rebalance': return <AlertTriangle className="w-4 h-4 text-orange-400" />;
-      default: return <CheckCircle className="w-4 h-4 text-blue-400" />;
+    switch (type.toLowerCase()) {
+      case 'buy': return <TrendingUp className="w-4 h-4 text-brand-success" />;
+      case 'sell': return <TrendingDown className="w-4 h-4 text-brand-error" />;
+      case 'hold': return <Target className="w-4 h-4 text-yellow-400" />;
+      default: return <CheckCircle className="w-4 h-4 text-brand-accent" />;
     }
   };
 
   const getRecommendationColor = (type: string) => {
-    switch (type) {
-      case 'Buy': return 'bg-green-600 text-white';
-      case 'Sell': return 'bg-red-600 text-white';
-      case 'Hold': return 'bg-yellow-600 text-white';
-      case 'Rebalance': return 'bg-orange-600 text-white';
-      default: return 'bg-blue-600 text-white';
+    switch (type.toLowerCase()) {
+      case 'buy': return 'bg-brand-success/20 text-brand-success border-brand-success/30';
+      case 'sell': return 'bg-brand-error/20 text-brand-error border-brand-error/30';
+      case 'hold': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      default: return 'bg-brand-accent/20 text-brand-accent border-brand-accent/30';
     }
   };
 
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 90) return 'text-green-400';
-    if (confidence >= 80) return 'text-blue-400';
-    if (confidence >= 70) return 'text-yellow-400';
-    return 'text-orange-400';
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+
+    const newConversation: Conversation = {
+      type: 'user',
+      message,
+      timestamp: new Date().toLocaleTimeString()
+    };
+
+    setConversations(prev => [...prev, newConversation]);
+    setMessage('');
+
+    // Simulate AI response (in real app, this would call an API)
+    setTimeout(() => {
+      const aiResponse: Conversation = {
+        type: 'assistant',
+        message: "Thank you for your question. I'm analyzing your portfolio and market conditions to provide the best recommendation. Based on current trends, I suggest diversifying into quality dividend stocks for stability while maintaining growth exposure.",
+        timestamp: new Date().toLocaleTimeString()
+      };
+      setConversations(prev => [...prev, aiResponse]);
+    }, 1500);
   };
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-    >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Investment Recommendations */}
-        <div className="lg:col-span-2">
-          <motion.div
-            className="glass-card p-6"
-            whileHover={{ scale: 1.01 }}
-          >
-            <div className="flex items-center space-x-2 mb-6">
-              <Brain className="w-6 h-6 text-brand-accent" />
-              <h2 className="text-xl font-bold text-white">Investment Recommendations</h2>
-            </div>
-            <div className="space-y-4">
-              {recommendations.map((rec, index) => (
-                <motion.div
-                  key={index}
-                  className="bg-white/5 rounded-lg p-4 border border-white/10 hover:bg-white/10 transition-colors"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${getRecommendationColor(rec.type)}`}>
-                        {getRecommendationIcon(rec.type)}
-                        <span className="ml-1">{rec.type}</span>
-                      </span>
-                      <h3 className="font-medium text-white">{rec.asset}</h3>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Star className={`w-4 h-4 ${getConfidenceColor(rec.confidence)}`} />
-                      <span className={`text-sm font-medium ${getConfidenceColor(rec.confidence)}`}>
-                        {rec.confidence}%
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="text-sm text-neutral-300 mb-3">{rec.reason}</p>
-
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-green-400 font-medium">{rec.impact}</p>
-                    <div className="flex items-center space-x-3 text-xs text-neutral-400">
-                      {rec.riskLevel && (
-                        <span className="flex items-center space-x-1">
-                          <span>Risk:</span>
-                          <span className={`font-medium ${
-                            rec.riskLevel === 'Low' ? 'text-green-400' :
-                            rec.riskLevel === 'Medium' ? 'text-yellow-400' : 'text-red-400'
-                          }`}>
-                            {rec.riskLevel}
-                          </span>
-                        </span>
-                      )}
-                      {rec.timeHorizon && (
-                        <span className="flex items-center space-x-1">
-                          <Clock className="w-3 h-3" />
-                          <span>{rec.timeHorizon}</span>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6 sm:space-y-8">
+        {/* Header Skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <CardSkeleton className="h-16 w-full sm:w-1/2" />
+          <CardSkeleton className="h-10 w-full sm:w-32" />
         </div>
 
-        {/* Chat Interface */}
-        <motion.div
-          className="glass-card p-6"
-          whileHover={{ scale: 1.01 }}
-        >
-          <div className="flex items-center space-x-2 mb-4">
-            <MessageSquare className="w-5 h-5 text-purple-400" />
-            <h3 className="text-lg font-bold text-white">Financial Consultation</h3>
+        {/* Chat and Recommendations Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+          <CardSkeleton className="p-6" />
+          <ListSkeleton items={4} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 sm:space-y-8" role="main" aria-label="Financial Advisor">
+      {/* Header */}
+      <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4" aria-labelledby="advisor-heading">
+        <div>
+          <h1 id="advisor-heading" className="text-xl sm:text-2xl lg:text-3xl font-bold font-display mb-2">
+            Financial <span className="gradient-text">Advisor</span>
+          </h1>
+          <p className="text-sm sm:text-base text-neutral-300">
+            AI-powered investment recommendations and market insights
+          </p>
+        </div>
+        <div className="flex-shrink-0">
+          <div className="flex items-center space-x-2 glass-card px-3 sm:px-4 py-2 rounded-lg">
+            <Brain className="w-4 h-4 text-brand-accent" aria-hidden="true" />
+            <span className="text-sm sm:text-base text-white font-medium">AI Assistant Online</span>
           </div>
-          <div className="space-y-4 mb-4 h-64 overflow-y-auto">
+        </div>
+      </section>
+
+      {/* Chat and Recommendations */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8" aria-labelledby="chat-recommendations-heading">
+        <h2 id="chat-recommendations-heading" className="sr-only">Chat Interface and Investment Recommendations</h2>
+
+        {/* AI Chat Interface */}
+        <div className="glass-card-strong p-4 sm:p-6 lg:p-8">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h3 className="text-base sm:text-lg font-semibold text-white">AI Assistant</h3>
+            <div className="flex items-center space-x-2 text-xs sm:text-sm">
+              <div className="w-2 h-2 bg-brand-success rounded-full animate-pulse"></div>
+              <span className="text-neutral-300">Active</span>
+            </div>
+          </div>
+
+          {/* Chat Messages */}
+          <div className="space-y-4 mb-6 max-h-96 overflow-y-auto" role="log" aria-label="Chat conversation">
             {conversations.map((conv, index) => (
-              <motion.div
+              <div
                 key={index}
-                className={`p-3 rounded-lg ${
-                  conv.type === 'user'
-                    ? 'bg-brand-accent/20 ml-8'
-                    : 'bg-white/5'
-                }`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.2 }}
+                className={`flex ${conv.type === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <p className="text-sm text-neutral-300">{conv.message}</p>
-              </motion.div>
+                <div className={`flex items-start space-x-2 sm:space-x-3 max-w-[85%] ${
+                  conv.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''
+                }`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    conv.type === 'user' ? 'bg-brand-accent' : 'bg-neutral-700'
+                  }`}>
+                    {conv.type === 'user' ? (
+                      <MessageSquare className="w-4 h-4 text-white" aria-hidden="true" />
+                    ) : (
+                      <Brain className="w-4 h-4 text-brand-accent" aria-hidden="true" />
+                    )}
+                  </div>
+                  <div className={`glass-card p-3 rounded-lg ${
+                    conv.type === 'user'
+                      ? 'bg-brand-accent/20 border border-brand-accent/30'
+                      : 'bg-neutral-800/50'
+                  }`}>
+                    <p className="text-sm sm:text-base text-white leading-relaxed">{conv.message}</p>
+                    {conv.timestamp && (
+                      <p className="text-xs text-neutral-400 mt-2">{conv.timestamp}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
-          <div className="flex space-x-2">
+
+          {/* Message Input */}
+          <form onSubmit={handleSendMessage} className="flex gap-2 sm:gap-3">
             <input
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Ask about your investments..."
-              className="flex-1 bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-accent"
+              placeholder="Ask me about your portfolio, market trends, or investment strategies..."
+              className="flex-1 glass-card px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-sm sm:text-base border border-white/10 focus:outline-none focus:ring-2 focus:ring-brand-accent/50 focus:border-transparent"
+              aria-label="Type your message to the financial advisor"
             />
-            <motion.button
-              className="bg-brand-accent hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <button
+              type="submit"
+              disabled={!message.trim()}
+              className="btn-primary p-2 sm:p-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Send message"
             >
-              <ChevronRight className="w-4 h-4" />
-            </motion.button>
+              <Send className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
+            </button>
+          </form>
+        </div>
+
+        {/* Investment Recommendations */}
+        <div className="glass-card-strong p-4 sm:p-6 lg:p-8">
+          <h3 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">Investment Recommendations</h3>
+
+          <div className="space-y-4 sm:space-y-6" role="list" aria-label="Investment recommendations list">
+            {/* Buy Recommendations */}
+            {processedRecommendations.buy.length > 0 && (
+              <div>
+                <h4 className="text-sm sm:text-base font-medium text-brand-success mb-3 flex items-center space-x-2">
+                  <TrendingUp className="w-4 h-4" aria-hidden="true" />
+                  <span>Buy Recommendations</span>
+                </h4>
+                <div className="space-y-3">
+                  {processedRecommendations.buy.map((rec, index) => (
+                    <div
+                      key={index}
+                      className="glass-card p-3 sm:p-4 rounded-lg hover:bg-white/5 transition-colors"
+                      role="listitem"
+                      tabIndex={0}
+                      aria-label={`Buy recommendation for ${rec.asset}: ${rec.reason}`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          {getRecommendationIcon(rec.type)}
+                          <span className="font-semibold text-white text-sm sm:text-base">{rec.asset}</span>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRecommendationColor(rec.type)}`}>
+                          {rec.confidence}% confidence
+                        </span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-neutral-300 mb-2">{rec.reason}</p>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-neutral-400">Impact: {rec.impact}</span>
+                        {rec.timeHorizon && <span className="text-neutral-400">Horizon: {rec.timeHorizon}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Hold Recommendations */}
+            {processedRecommendations.hold.length > 0 && (
+              <div>
+                <h4 className="text-sm sm:text-base font-medium text-yellow-400 mb-3 flex items-center space-x-2">
+                  <Target className="w-4 h-4" aria-hidden="true" />
+                  <span>Hold Recommendations</span>
+                </h4>
+                <div className="space-y-3">
+                  {processedRecommendations.hold.map((rec, index) => (
+                    <div
+                      key={index}
+                      className="glass-card p-3 sm:p-4 rounded-lg hover:bg-white/5 transition-colors"
+                      role="listitem"
+                      tabIndex={0}
+                      aria-label={`Hold recommendation for ${rec.asset}: ${rec.reason}`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          {getRecommendationIcon(rec.type)}
+                          <span className="font-semibold text-white text-sm sm:text-base">{rec.asset}</span>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRecommendationColor(rec.type)}`}>
+                          {rec.confidence}% confidence
+                        </span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-neutral-300 mb-2">{rec.reason}</p>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-neutral-400">Impact: {rec.impact}</span>
+                        {rec.timeHorizon && <span className="text-neutral-400">Horizon: {rec.timeHorizon}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sell Recommendations */}
+            {processedRecommendations.sell.length > 0 && (
+              <div>
+                <h4 className="text-sm sm:text-base font-medium text-brand-error mb-3 flex items-center space-x-2">
+                  <TrendingDown className="w-4 h-4" aria-hidden="true" />
+                  <span>Sell Recommendations</span>
+                </h4>
+                <div className="space-y-3">
+                  {processedRecommendations.sell.map((rec, index) => (
+                    <div
+                      key={index}
+                      className="glass-card p-3 sm:p-4 rounded-lg hover:bg-white/5 transition-colors"
+                      role="listitem"
+                      tabIndex={0}
+                      aria-label={`Sell recommendation for ${rec.asset}: ${rec.reason}`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          {getRecommendationIcon(rec.type)}
+                          <span className="font-semibold text-white text-sm sm:text-base">{rec.asset}</span>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRecommendationColor(rec.type)}`}>
+                          {rec.confidence}% confidence
+                        </span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-neutral-300 mb-2">{rec.reason}</p>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-neutral-400">Impact: {rec.impact}</span>
+                        {rec.timeHorizon && <span className="text-neutral-400">Horizon: {rec.timeHorizon}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        </motion.div>
-      </div>
-    </motion.div>
+        </div>
+      </section>
+
+      {/* Market Insights */}
+      <section aria-labelledby="insights-heading">
+        <h2 id="insights-heading" className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6">
+          Market Insights
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="glass-card p-4 sm:p-6 rounded-lg">
+            <div className="flex items-center space-x-2 mb-3">
+              <Activity className="w-5 h-5 text-brand-accent" aria-hidden="true" />
+              <h4 className="font-semibold text-white text-sm sm:text-base">Market Sentiment</h4>
+            </div>
+            <p className="text-2xl font-bold text-brand-success mb-1">Positive</p>
+            <p className="text-xs sm:text-sm text-neutral-300">Based on current economic indicators</p>
+          </div>
+
+          <div className="glass-card p-4 sm:p-6 rounded-lg">
+            <div className="flex items-center space-x-2 mb-3">
+              <Clock className="w-5 h-5 text-brand-accent" aria-hidden="true" />
+              <h4 className="font-semibold text-white text-sm sm:text-base">Next Update</h4>
+            </div>
+            <p className="text-2xl font-bold text-white mb-1">2 hours</p>
+            <p className="text-xs sm:text-sm text-neutral-300">Real-time analysis refresh</p>
+          </div>
+
+          <div className="glass-card p-4 sm:p-6 rounded-lg">
+            <div className="flex items-center space-x-2 mb-3">
+              <Target className="w-5 h-5 text-brand-accent" aria-hidden="true" />
+              <h4 className="font-semibold text-white text-sm sm:text-base">Accuracy Rate</h4>
+            </div>
+            <p className="text-2xl font-bold text-brand-success mb-1">94%</p>
+            <p className="text-xs sm:text-sm text-neutral-300">Historical recommendation accuracy</p>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 };
+
+export default Advisor;

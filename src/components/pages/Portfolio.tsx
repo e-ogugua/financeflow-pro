@@ -1,6 +1,18 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { memo, useState, useMemo } from 'react';
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { DollarSign, Target, Activity } from 'lucide-react';
+import { StatCard } from '../ui/StatCard';
+import { Progress } from '../ui/Progress';
+import { CardSkeleton, TableSkeleton } from '../ui/Skeleton';
+
+/**
+ * PERFORMANCE OPTIMIZATIONS:
+ * - React.memo for expensive chart components
+ * - useMemo for data processing and calculations
+ * - Responsive design with unified breakpoint system
+ * - Accessibility: ARIA labels, keyboard navigation, screen reader support
+ * - Simplified animations: limited opacity and transform chains
+ */
 
 interface PortfolioProps {
   allocationData: Array<{
@@ -8,12 +20,58 @@ interface PortfolioProps {
     value: number;
     color: string;
   }>;
+  isLoading?: boolean;
 }
 
-export const Portfolio: React.FC<PortfolioProps> = ({ allocationData }) => {
+interface RiskProfile {
+  level: string;
+  label: string;
+  return: string;
+  risk: string;
+  description: string;
+  allocation: { stocks: number; bonds: number; alternatives: number };
+  SharpeRatio: number;
+  maxDrawdown: string;
+  volatility: string;
+}
+
+// Memoized chart components for better performance
+const AllocationChart = memo(({ data }: { data: Array<{ name: string; value: number; color: string }> }) => (
+  <div className="h-64 sm:h-72 lg:h-80">
+    <ResponsiveContainer width="100%" height="100%">
+      <RechartsPieChart>
+        <Pie
+          data={data}
+          cx="50%"
+          cy="50%"
+          outerRadius="60%"
+          innerRadius="30%"
+          paddingAngle={2}
+          dataKey="value"
+        >
+          {data.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={entry.color} />
+          ))}
+        </Pie>
+        <Tooltip
+          contentStyle={{
+            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '8px',
+            color: 'white'
+          }}
+        />
+      </RechartsPieChart>
+    </ResponsiveContainer>
+  </div>
+));
+
+AllocationChart.displayName = 'AllocationChart';
+
+export const Portfolio: React.FC<PortfolioProps> = ({ allocationData, isLoading = false }) => {
   const [selectedRiskLevel, setSelectedRiskLevel] = useState('moderate');
 
-  const riskProfiles = [
+  const riskProfiles: RiskProfile[] = [
     {
       level: 'conservative',
       label: 'Conservative',
@@ -49,152 +107,278 @@ export const Portfolio: React.FC<PortfolioProps> = ({ allocationData }) => {
     }
   ];
 
-  const currentProfile = riskProfiles.find(p => p.level === selectedRiskLevel) || riskProfiles[1];
+  // Memoize current risk profile
+  const currentProfile = useMemo(() =>
+    riskProfiles.find(profile => profile.level === selectedRiskLevel) || riskProfiles[1],
+    [selectedRiskLevel]
+  );
+
+  // Memoize portfolio metrics
+  const portfolioMetrics = useMemo(() => ({
+    totalValue: allocationData.reduce((sum, item) => sum + item.value, 0),
+    topHolding: allocationData.reduce((max, item) =>
+      item.value > max.value ? item : max, allocationData[0]
+    ),
+    diversification: allocationData.length > 3 ? 'High' : allocationData.length > 1 ? 'Medium' : 'Low'
+  }), [allocationData]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6 sm:space-y-8">
+        {/* Header Skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <CardSkeleton className="h-16 w-full sm:w-1/2" />
+          <CardSkeleton className="h-10 w-full sm:w-32" />
+        </div>
+
+        {/* Metrics Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <CardSkeleton key={i} className="p-6" />
+          ))}
+        </div>
+
+        {/* Chart and Table Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+          <CardSkeleton className="p-6" />
+          <TableSkeleton rows={5} cols={3} />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-    >
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Asset Allocation */}
-        <motion.div
-          className="glass-card p-6"
-          whileHover={{ scale: 1.01 }}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-white">Asset Allocation</h2>
-            <div className="text-sm text-neutral-400">Current Portfolio</div>
+    <div className="space-y-6 sm:space-y-8" role="main" aria-label="Portfolio Management">
+      {/* Header */}
+      <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4" aria-labelledby="portfolio-heading">
+        <div>
+          <h1 id="portfolio-heading" className="text-xl sm:text-2xl lg:text-3xl font-bold font-display mb-2">
+            Portfolio <span className="gradient-text">Management</span>
+          </h1>
+          <p className="text-sm sm:text-base text-neutral-300">
+            Asset allocation and risk management overview
+          </p>
+        </div>
+        <div className="flex-shrink-0">
+          <select
+            value={selectedRiskLevel}
+            onChange={(e) => setSelectedRiskLevel(e.target.value)}
+            className="glass-card px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base border border-white/10 focus:outline-none focus:ring-2 focus:ring-brand-accent/50"
+            aria-label="Select risk profile"
+          >
+            <option value="conservative">Conservative</option>
+            <option value="moderate">Moderate</option>
+            <option value="aggressive">Aggressive</option>
+          </select>
+        </div>
+      </section>
+
+      {/* Portfolio Metrics */}
+      <section aria-labelledby="metrics-heading">
+        <h2 id="metrics-heading" className="sr-only">Portfolio Metrics</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <StatCard
+            title="Total Portfolio Value"
+            value={`$${portfolioMetrics.totalValue.toLocaleString()}`}
+            change="+12.5%"
+            changeType="positive"
+            icon={DollarSign}
+            trend="up"
+            className="h-full"
+          />
+
+          <StatCard
+            title="Top Holding"
+            value={portfolioMetrics.topHolding?.name || 'N/A'}
+            change={`${portfolioMetrics.topHolding?.value.toLocaleString() || 0}`}
+            changeType="neutral"
+            icon={Target}
+            trend="stable"
+            className="h-full"
+          />
+
+          <StatCard
+            title="Diversification"
+            value={portfolioMetrics.diversification}
+            change={`${allocationData.length} assets`}
+            changeType="positive"
+            icon={Activity}
+            trend="up"
+            className="h-full"
+          />
+        </div>
+      </section>
+
+      {/* Charts and Analysis */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8" aria-labelledby="analysis-heading">
+        <h2 id="analysis-heading" className="sr-only">Portfolio Analysis</h2>
+
+        {/* Asset Allocation Chart */}
+        <div className="glass-card-strong p-4 sm:p-6 lg:p-8">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h3 className="text-base sm:text-lg font-semibold text-white">Asset Allocation</h3>
+            <div className="flex items-center space-x-2 text-xs sm:text-sm">
+              <span className="text-neutral-300">Current Distribution</span>
+            </div>
           </div>
-
-          <ResponsiveContainer width="100%" height={250}>
-            <RechartsPieChart>
-              <Pie
-                data={allocationData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={100}
-                dataKey="value"
-                label={({ name, value }) => `${name}: ${value}%`}
-              >
-                {allocationData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </RechartsPieChart>
-          </ResponsiveContainer>
-
-          <div className="grid grid-cols-2 gap-3 mt-4">
+          <AllocationChart data={allocationData} />
+          <div className="mt-4 space-y-2">
             {allocationData.map((item) => (
-              <motion.div
-                key={item.name}
-                className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white/5 transition-colors"
-                whileHover={{ scale: 1.02 }}
-              >
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: item.color }}
-                />
-                <div className="flex-1">
-                  <span className="text-sm font-medium text-neutral-300">{item.name}</span>
-                  <span className="text-sm text-white ml-auto block">{item.value}%</span>
+              <div key={item.name} className="flex items-center justify-between text-sm">
+                <div className="flex items-center space-x-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: item.color }}
+                    aria-hidden="true"
+                  ></div>
+                  <span className="text-white">{item.name}</span>
                 </div>
-              </motion.div>
+                <span className="text-neutral-300 font-medium">
+                  {item.value.toLocaleString()} ({((item.value / portfolioMetrics.totalValue) * 100).toFixed(1)}%)
+                </span>
+              </div>
             ))}
           </div>
-        </motion.div>
+        </div>
 
         {/* Risk Profile Analysis */}
-        <motion.div
-          className="glass-card p-6"
-          whileHover={{ scale: 1.01 }}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-white">Risk Profile Analysis</h2>
-            <div className="text-sm text-neutral-400">Risk Assessment</div>
-          </div>
+        <div className="glass-card-strong p-4 sm:p-6 lg:p-8">
+          <h3 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">Risk Profile Analysis</h3>
 
-          <div className="space-y-4">
-            {riskProfiles.map((profile) => (
-              <motion.div
-                key={profile.level}
-                className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
-                  selectedRiskLevel === profile.level
-                    ? 'border-brand-accent bg-brand-accent/10 shadow-lg ring-2 ring-brand-accent/20'
-                    : 'border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/30'
-                }`}
-                onClick={() => setSelectedRiskLevel(profile.level)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="font-medium text-white">{profile.label}</h3>
-                    <p className="text-sm text-neutral-300">{profile.description}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-brand-success">{profile.return}</p>
-                    <p className="text-sm text-neutral-400">{profile.risk} Risk</p>
-                  </div>
-                </div>
+          {/* Current Profile */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm sm:text-base font-medium text-white">Current Profile</h4>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                currentProfile.risk === 'Low' ? 'bg-green-500/20 text-green-400' :
+                currentProfile.risk === 'Medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                'bg-red-500/20 text-red-400'
+              }`}>
+                {currentProfile.risk} Risk
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-neutral-300 mb-4">{currentProfile.description}</p>
 
-                <div className="grid grid-cols-3 gap-4 text-xs">
-                  <div className="text-center">
-                    <p className="text-neutral-400 mb-1">Sharpe Ratio</p>
-                    <p className="font-semibold text-white">{profile.SharpeRatio}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-neutral-400 mb-1">Max Drawdown</p>
-                    <p className="font-semibold text-red-400">{profile.maxDrawdown}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-neutral-400 mb-1">Volatility</p>
-                    <p className="font-semibold text-white">{profile.volatility}</p>
-                  </div>
-                </div>
-
-                <div className="mt-3 pt-3 border-t border-white/10">
-                  <div className="flex justify-between text-xs text-neutral-400 mb-2">
-                    <span>Allocation:</span>
-                    <span>Stocks {profile.allocation?.stocks}% • Bonds {profile.allocation?.bonds}% • Alternatives {profile.allocation?.alternatives}%</span>
-                  </div>
-                  <div className="flex h-2 rounded-full overflow-hidden">
-                    <div className="bg-blue-500 flex-1" style={{ width: `${profile.allocation?.stocks}%` }}></div>
-                    <div className="bg-green-500 flex-1" style={{ width: `${profile.allocation?.bonds}%` }}></div>
-                    <div className="bg-purple-500 flex-1" style={{ width: `${profile.allocation?.alternatives}%` }}></div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Current Profile Summary */}
-          <motion.div
-            className="mt-6 p-4 bg-gradient-to-r from-brand-accent/10 to-blue-500/10 rounded-lg border border-brand-accent/20"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
-            <h4 className="font-semibold text-white mb-2">Current Profile: {currentProfile.label}</h4>
-            <p className="text-sm text-neutral-300 mb-3">
-              Your portfolio is optimized for {currentProfile.risk.toLowerCase()} risk tolerance with expected returns of {currentProfile.return}.
-            </p>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            {/* Allocation Bars */}
+            <div className="space-y-3">
               <div>
-                <p className="text-neutral-400">Risk Level</p>
-                <p className="font-semibold text-white">{currentProfile.risk}</p>
+                <div className="flex justify-between text-xs sm:text-sm mb-1">
+                  <span className="text-neutral-300">Stocks</span>
+                  <span className="text-white">{currentProfile.allocation.stocks}%</span>
+                </div>
+                <Progress value={currentProfile.allocation.stocks} className="h-2" />
               </div>
               <div>
-                <p className="text-neutral-400">Sharpe Ratio</p>
-                <p className="font-semibold text-white">{currentProfile.SharpeRatio}</p>
+                <div className="flex justify-between text-xs sm:text-sm mb-1">
+                  <span className="text-neutral-300">Bonds</span>
+                  <span className="text-white">{currentProfile.allocation.bonds}%</span>
+                </div>
+                <Progress value={currentProfile.allocation.bonds} className="h-2" />
+              </div>
+              <div>
+                <div className="flex justify-between text-xs sm:text-sm mb-1">
+                  <span className="text-neutral-300">Alternatives</span>
+                  <span className="text-white">{currentProfile.allocation.alternatives}%</span>
+                </div>
+                <Progress value={currentProfile.allocation.alternatives} className="h-2" />
               </div>
             </div>
-          </motion.div>
-        </motion.div>
-      </div>
-    </motion.div>
+          </div>
+
+          {/* Risk Metrics */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="glass-card p-3 rounded-lg">
+              <p className="text-xs text-neutral-400 mb-1">Expected Return</p>
+              <p className="text-sm sm:text-base font-semibold text-brand-success">{currentProfile.return}</p>
+            </div>
+            <div className="glass-card p-3 rounded-lg">
+              <p className="text-xs text-neutral-400 mb-1">Sharpe Ratio</p>
+              <p className="text-sm sm:text-base font-semibold text-white">{currentProfile.SharpeRatio}</p>
+            </div>
+            <div className="glass-card p-3 rounded-lg">
+              <p className="text-xs text-neutral-400 mb-1">Max Drawdown</p>
+              <p className="text-sm sm:text-base font-semibold text-brand-error">{currentProfile.maxDrawdown}</p>
+            </div>
+            <div className="glass-card p-3 rounded-lg">
+              <p className="text-xs text-neutral-400 mb-1">Volatility</p>
+              <p className="text-sm sm:text-base font-semibold text-white">{currentProfile.volatility}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Holdings Table */}
+      <section aria-labelledby="holdings-heading">
+        <h2 id="holdings-heading" className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6">
+          Current Holdings
+        </h2>
+        <div className="glass-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full" role="table" aria-label="Portfolio holdings table">
+              <thead className="border-b border-white/10">
+                <tr className="text-left">
+                  <th className="p-4 text-xs sm:text-sm font-medium text-neutral-400 uppercase tracking-wider">
+                    Asset
+                  </th>
+                  <th className="p-4 text-xs sm:text-sm font-medium text-neutral-400 uppercase tracking-wider">
+                    Allocation
+                  </th>
+                  <th className="p-4 text-xs sm:text-sm font-medium text-neutral-400 uppercase tracking-wider">
+                    Value
+                  </th>
+                  <th className="p-4 text-xs sm:text-sm font-medium text-neutral-400 uppercase tracking-wider">
+                    Change
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {allocationData.map((holding, _index) => (
+                  <tr
+                    key={holding.name}
+                    className="hover:bg-white/5 transition-colors"
+                    role="row"
+                    tabIndex={0}
+                    aria-label={`${holding.name} holding: ${holding.value.toLocaleString()} value`}
+                  >
+                    <td className="p-4">
+                      <div className="flex items-center space-x-3">
+                        <div
+                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: holding.color }}
+                          aria-hidden="true"
+                        ></div>
+                        <span className="text-white font-medium text-sm sm:text-base">{holding.name}</span>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center space-x-2">
+                        <Progress
+                          value={(holding.value / portfolioMetrics.totalValue) * 100}
+                          className="w-16 sm:w-20 h-1.5"
+                        />
+                        <span className="text-xs sm:text-sm text-neutral-300">
+                          {((holding.value / portfolioMetrics.totalValue) * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-4 text-sm sm:text-base font-semibold text-white">
+                      ${holding.value.toLocaleString()}
+                    </td>
+                    <td className="p-4">
+                      <span className="text-xs sm:text-sm text-brand-success font-medium">
+                        +2.3%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 };
+
+export default Portfolio;

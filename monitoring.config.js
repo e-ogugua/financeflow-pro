@@ -2,7 +2,7 @@
   "checks": [
     {
       "name": "uptime",
-      "url": "https://ai-finance-advisor.vercel.app",
+      "url": "https://financeflow-pro.vercel.app",
       "interval": 300,
       "timeout": 10,
       "threshold": 1,
@@ -24,7 +24,7 @@
     },
     {
       "name": "status_code",
-      "url": "https://ai-finance-advisor.vercel.app",
+      "url": "https://financeflow-pro.vercel.app",
       "interval": 300,
       "expected_status": 200,
       "alert": {
