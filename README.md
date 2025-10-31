@@ -462,3 +462,15 @@ Developed by CEO – Chukwuka Emmanuel Ogugua under the EmmanuelOS initiative.
 ## Ecosystem Links
 - EmmanuelOS: https://github.com/e-ogugua/emmanuelos
 - Portfolio Hub: https://ceodev.vercel.app/
+
+## Screenshots
+Add a hero screenshot here for quick visual context.
+![Hero Screenshot](./public/screenshot-hero.png)
+
+## Roadmap
+Track progress and upcoming work in the Roadmap:
+https://github.com/e-ogugua/financeflow-pro/issues?q=is%3Aissue+Roadmap
+
+## Links
+- Releases: https://github.com/e-ogugua/financeflow-pro/releases
+- Security Policy: ./SECURITY.md
