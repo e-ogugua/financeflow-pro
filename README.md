@@ -2,6 +2,10 @@
 
 Modular wealth management and analytics platform designed for scalable portfolio intelligence and financial planning. Built with React 18, TypeScript, and modern web technologies for optimal developer experience and user performance.
 
+## Live Demo
+
+- https://financeflow-pro.vercel.app
+
 ## Architecture Overview
 
 ### System Design Philosophy
@@ -454,3 +458,7 @@ npm run dev
 Open [http://localhost:5173](http://localhost:5173) to view the application.
 
 Developed by CEO – Chukwuka Emmanuel Ogugua under the EmmanuelOS initiative.
+
+## Ecosystem Links
+- EmmanuelOS: https://github.com/e-ogugua/emmanuelos
+- Portfolio Hub: https://ceodev.vercel.app/
