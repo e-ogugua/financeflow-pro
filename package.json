@@ -16,7 +16,8 @@
     "test:watch": "vitest tests/unit/",
     "test:coverage": "vitest run tests/unit/ --coverage",
     "preview": "vite preview",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "capture:hero": "node scripts/capture-hero.mjs"
   },
   "dependencies": {
     "framer-motion": "^10.16.0",
